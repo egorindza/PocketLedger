@@ -1,0 +1,20 @@
+@model IReadOnlyList<Subscription>
+@{ ViewData["Title"] = "Подписки"; }
+<header class="page-head"><div><h1>Подписки</h1><p>Тарифы, даты и история изменений.</p></div><a href="/subscriptions/new" class="button primary">＋ Подписка</a></header>
+<section class="panel">
+    <div class="panel-head"><div><h2>Регулярные платежи</h2><p>@Model.Count(x => !x.Paused) активных · @Model.Count(x => x.Paused) на паузе</p></div></div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty"><h3>Подписок пока нет</h3><p>Добавьте первый сервис или регулярный счёт.</p></div>
+    }
+    @foreach (var item in Model)
+    {
+        <article class="row">
+            <span class="tile" aria-hidden="true">@Display.Initial(item.Name)</span>
+            <span class="row-text"><a href="/subscriptions/@item.Id"><strong>@item.Name</strong></a><small>@item.Category · @(item.Paused ? "На паузе" : Display.Date(item.Due))</small></span>
+            <span class="amount"><strong>@Display.Money(item.Minor, item.Currency)</strong><small>@Display.CycleShort(item.Cycle)</small></span>
+            @if (item.Paused) { <a href="/subscriptions/@item.Id/edit" class="button small secondary">Изменить</a> }
+            else { <a href="/subscriptions/@item.Id/pay" class="button small secondary">Записать платёж</a> }
+        </article>
+    }
+</section>

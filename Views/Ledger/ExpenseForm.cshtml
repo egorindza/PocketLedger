@@ -1,0 +1,38 @@
+@model ExpenseForm
+@{
+    var editing = Model.Version != 0;
+    var confirming = Model.SubscriptionId is not null && !editing;
+    ViewData["Title"] = editing ? "Изменить расход" : confirming ? "Записать платёж" : "Добавить расход";
+    var changes = ViewBag.Changes as IReadOnlyList<ExpenseVersion> ?? [];
+}
+<a class="back" href="@(confirming ? $"/subscriptions/{Model.SubscriptionId}" : "/history")">‹ @(confirming ? "Подписка" : "История")</a>
+<header class="page-head"><div><h1>@ViewData["Title"]</h1>
+    @if (confirming) { <p>@Model.Name · списание по плану @(Model.ScheduledOn is { } date ? Display.Date(date) : "—"). Укажите фактическую сумму.</p> }
+    else if (editing) { <p>Исправьте запись. Предыдущая версия сохранится в журнале правок.</p> }
+    else { <p>Запишите покупку или отдельный платёж.</p> }
+</div></header>
+<form class="panel form-panel" method="post" action="/expenses/save">
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" /><input asp-for="Version" type="hidden" />
+    <input asp-for="SubscriptionId" type="hidden" /><input asp-for="SubscriptionVersion" type="hidden" />
+    <input name="ScheduledOn" value="@Model.ScheduledOn?.ToString("yyyy-MM-dd")" type="hidden" />
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <div class="fields">
+        <label>Описание<input asp-for="Name" maxlength="90" placeholder="Например, продукты на неделю" required /></label>
+        <label>Категория<input asp-for="Category" maxlength="60" list="categories" required /></label>
+        <label>Фактическая сумма<input asp-for="Amount" type="number" min="0.01" step="0.01" inputmode="decimal" required /></label>
+        <label>Валюта<select asp-for="Currency" asp-items="Html.GetEnumSelectList<Currency>()"></select></label>
+        <label>Дата оплаты<input asp-for="PaidOn" type="date" required /></label>
+    </div>
+    <partial name="_Categories" />
+    @if (confirming) { <p class="form-note">После сохранения дата подписки сдвинется на следующий цикл.</p> }
+    <div class="actions"><button class="button primary" type="submit">@(editing ? "Сохранить изменения" : "Записать расход")</button><a class="button secondary" href="@(confirming ? $"/subscriptions/{Model.SubscriptionId}" : "/history")">Отмена</a></div>
+</form>
+@if (changes.Count > 0)
+{
+    <section class="panel recent form-panel history-changes"><div class="panel-head"><div><h2>До исправления</h2><p>Предыдущие версии этой записи</p></div></div>
+    @foreach (var row in changes)
+    {
+        <div class="row"><span class="row-text"><strong>@row.Name · @row.Category</strong><small>Оплата @Display.Date(row.PaidOn) · правка @row.ChangedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></span><strong class="amount">@Display.Money(row.Minor, row.Currency)</strong></div>
+    }</section>
+}

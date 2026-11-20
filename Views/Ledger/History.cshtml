@@ -1,0 +1,45 @@
+@model HistoryPage
+@{
+    ViewData["Title"] = "История расходов";
+    var currencyArg = Model.Currency?.ToString();
+}
+<header class="page-head"><div><h1>История расходов</h1><p>Фактические траты по подпискам и разовые покупки.</p></div>
+    <div class="actions"><a href="@Url.Action("Export", new { period = Model.Period, currency = currencyArg })" class="button secondary">CSV</a><a href="/expenses/new" class="button primary">＋ Расход</a></div>
+</header>
+<section class="panel">
+    <div class="panel-head history-head">
+        <div class="segments" aria-label="Период расходов">
+            @foreach (var (key, text) in new[] { ("month", "Этот месяц"), ("year", "Этот год"), ("all", "Всё время") })
+            {
+                <a href="@Url.Action("History", new { period = key, currency = currencyArg })" class="@(key == Model.Period ? "selected" : "")" aria-current="@(key == Model.Period ? "true" : null)">@text</a>
+            }
+        </div>
+        <form class="actions filter" method="get" action="/history">
+            <input type="hidden" name="period" value="@Model.Period" />
+            <select name="currency" aria-label="Валюта"><option value="">Все валюты</option>@foreach (var item in Enum.GetValues<Currency>()) { <option value="@item" selected="@(item == Model.Currency)">@item</option> }</select>
+            <button type="submit" class="button small secondary">Применить</button>
+        </form>
+    </div>
+    <div class="total-strip"><span>Итого за период</span>
+        @if (Model.Totals.Count == 0) { <strong>0</strong> }
+        @foreach (var total in Model.Totals) { <strong>@Display.Money(total.Minor, total.Currency)</strong> }
+    </div>
+    @if (Model.Expenses.Count == 0) { <div class="empty"><h3>Расходов в этом периоде нет</h3><p>Добавьте покупку или подтвердите списание по подписке.</p></div> }
+    @foreach (var row in Model.Visible)
+    {
+        <div class="row">
+            <span class="tile" aria-hidden="true">@Display.Initial(row.Name)</span>
+            <span class="row-text"><a href="/expenses/@row.Id/edit"><strong>@row.Name</strong></a><small>@row.PaidOn.ToString("dd.MM.yyyy") · @row.Category · @(row.SubscriptionId is null ? "Разовый" : "Подписка")</small></span>
+            <strong class="amount">@Display.Money(row.Minor, row.Currency)</strong>
+            <a class="button small secondary" href="/expenses/@row.Id/edit">Изменить</a>
+        </div>
+    }
+    @if (Model.PageCount > 1)
+    {
+        <nav class="pager" aria-label="Страницы расходов">
+            @if (Model.Page > 1) { <a class="text-link" href="@Url.Action("History", new { period = Model.Period, currency = currencyArg, page = Model.Page - 1 })">Назад</a> }
+            <span>Страница @Model.Page из @Model.PageCount</span>
+            @if (Model.Page < Model.PageCount) { <a class="text-link" href="@Url.Action("History", new { period = Model.Period, currency = currencyArg, page = Model.Page + 1 })">Дальше</a> }
+        </nav>
+    }
+</section>

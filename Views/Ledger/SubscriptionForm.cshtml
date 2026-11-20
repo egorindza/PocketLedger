@@ -1,0 +1,24 @@
+@model SubscriptionForm
+@{ ViewData["Title"] = Model.Id == 0 ? "Новая подписка" : "Изменить подписку"; }
+<a class="back" href="@(Model.Id == 0 ? "/subscriptions" : $"/subscriptions/{Model.Id}")">‹ Подписки</a>
+<header class="page-head"><div><h1>@ViewData["Title"]</h1><p>Укажите сумму за одно списание и дату следующего платежа.</p></div></header>
+<form class="panel form-panel" method="post" action="/subscriptions/save">
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" /><input asp-for="Version" type="hidden" />
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <div class="fields">
+        <label>Название<input asp-for="Name" maxlength="90" placeholder="Например, домашний интернет" required /></label>
+        <label>Категория<input asp-for="Category" list="categories" maxlength="60" placeholder="Например, связь" required /></label>
+        <label>Сумма<input asp-for="Amount" type="number" step="0.01" min="0.01" inputmode="decimal" required /></label>
+        <label>Валюта<select asp-for="Currency" asp-items="Html.GetEnumSelectList<Currency>()"></select></label>
+        <label>Периодичность<select asp-for="Cycle">@foreach (var cycle in Enum.GetValues<Cycle>()) { <option value="@((int)cycle)">@Display.CycleName(cycle)</option> }</select></label>
+        <label>Следующее списание<input asp-for="Due" type="date" required /></label>
+    </div>
+    <partial name="_Categories" />
+    @if (Model.Id != 0)
+    {
+        <label class="check"><input asp-for="Paused" /> Поставить подписку на паузу</label>
+        <p class="form-note">Новая цена попадёт в историю. Уже записанные платежи сохранят свои суммы.</p>
+    }
+    <div class="actions"><button class="button primary" type="submit">Сохранить подписку</button><a class="button secondary" href="/subscriptions">Отмена</a></div>
+</form>

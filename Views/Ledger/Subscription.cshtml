@@ -1,0 +1,40 @@
+@model SubscriptionPage
+@{
+    var item = Model.Item;
+    ViewData["Title"] = item.Name;
+}
+<a class="back" href="/subscriptions">‹ Подписки</a>
+<header class="page-head"><div><p class="overline">@item.Category</p><h1>@item.Name</h1><p>@Display.CycleName(item.Cycle) · @(item.Paused ? "На паузе" : $"Следующее списание {Display.Date(item.Due)}")</p></div>
+    <div class="actions"><a href="/subscriptions/@item.Id/edit" class="button secondary">Изменить</a>@if (!item.Paused) { <a href="/subscriptions/@item.Id/pay" class="button primary">Записать платёж</a> }</div>
+</header>
+<div class="dashboard-grid">
+    <section class="panel">
+        <div class="panel-head"><div><h2>Текущий тариф</h2><p>Сумма за один период</p></div><strong class="amount">@Display.Money(item.Minor, item.Currency)</strong></div>
+        @if (!item.Paused)
+        {
+            <details class="inline-details">
+                <summary>Пропустить ближайшее списание</summary>
+                <p>Перенесём дату на следующий цикл без записи расхода.</p>
+                <form method="post" action="/subscriptions/@item.Id/skip">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="due" value="@item.Due.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="version" value="@item.Version" />
+                    <button type="submit" class="button small secondary">Пропустить @Display.Date(item.Due)</button>
+                </form>
+            </details>
+        }
+        <div class="panel-head row-line"><div><h2>История тарифов</h2><p>Цена, валюта и периодичность на момент изменения</p></div></div>
+        @foreach (var version in Model.Prices)
+        {
+            <div class="row"><span class="row-text"><strong>@Display.CycleName(version.Cycle)</strong><small>@version.RecordedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></span><strong class="amount">@Display.Money(version.Minor, version.Currency)</strong></div>
+        }
+    </section>
+    <section class="panel">
+        <div class="panel-head"><div><h2>Фактические платежи</h2><p>Сколько списалось по этой подписке</p></div></div>
+        @if (Model.Payments.Count == 0) { <div class="empty"><p>Платежей пока нет.</p></div> }
+        @foreach (var row in Model.Payments)
+        {
+            <div class="row"><span class="row-text"><a href="/expenses/@row.Id/edit"><strong>@Display.Date(row.PaidOn)</strong></a><small>@row.Name</small></span><strong class="amount">@Display.Money(row.Minor, row.Currency)</strong></div>
+        }
+    </section>
+</div>
